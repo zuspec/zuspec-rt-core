@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "zuspec-rt-core"
+version = "0.0.1"
+description = "Zuspec runtime core: shared substrate and generated ABI headers for the ZBC runtime/engine"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "Apache-2.0"}
+authors = [
+    {name = "Matthew Ballance", email = "matt.ballance@gmail.com"}
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+]
+
+[tool.setuptools]
+packages = ["zuspec.rt.core"]
+package-dir = {"" = "src"}
+
+[tool.setuptools.package-data]
+"zuspec.rt.core" = ["share/**/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_functions = "test_*"
