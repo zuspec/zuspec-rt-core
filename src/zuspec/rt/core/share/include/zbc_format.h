@@ -11,6 +11,12 @@
 
 #include <stdint.h>
 
+#if defined(__cplusplus)
+#  define ZBC_STATIC_ASSERT(cond, msg) static_assert(cond, msg)
+#else
+#  define ZBC_STATIC_ASSERT(cond, msg) _Static_assert(cond, msg)
+#endif
+
 /* File identity */
 #define ZBC_MAGIC0 0x5a
 #define ZBC_MAGIC1 0x42
@@ -33,6 +39,8 @@
 #define ZBC_SEC_LINE   0x000b  /* pc->src_ref line table */
 #define ZBC_SEC_BLOCK  0x000c  /* FSM block table (zbc_block[]) */
 #define ZBC_SEC_OPLIST 0x000d  /* u32 operand lists (PAR/SELECT branch ids) */
+#define ZBC_SEC_SELECT 0x000e  /* weighted-SELECT descriptors (zbc_select[]) */
+#define ZBC_SEC_SPROB  0x000f  /* relocatable dv-solve SolveProblem blobs */
 
 /* zbc_hdr_flags: Header flag bits. */
 #define ZBC_HDR_HAS_PROV        0x0001  /* provenance sections present */
@@ -47,6 +55,12 @@
 #define ZBC_PROV_G_CORO  0x0004  /* granularity: coroutine */
 #define ZBC_PROV_G_DECL  0x0008  /* granularity: declaration */
 #define ZBC_PROV_F_SYNTH 0x0100  /* compiler-synthesized; no real source */
+
+/* zbc_sel_flags: SELECT descriptor flag bits. */
+#define ZBC_SEL_ALLOW_NONE 0x0001  /* no eligible branch -> run nothing (not an error) */
+
+/* zbc_solve_flags: SOLVE descriptor flag bits. */
+#define ZBC_SOLVE_SEED_FIXED 0x0001  /* use seed_value; else draw from the frame stream */
 
 /* zbc_cmt_kind: Comment kinds. */
 #define ZBC_CMT_LEADING  0x0001
@@ -149,15 +163,36 @@ typedef struct {
     uint16_t   _rsvd;
 } zbc_block;
 
+/* zbc_select: Weighted-SELECT descriptor (16 bytes). SELECT section is zbc_select[]; arg0 of a SELECT instr indexes it. The OPLIST pool holds, contiguously from oplist_off, three u32 runs of length n_branches: branch coro ids, positive weights, then guard registers (0xFFFFFFFF = unguarded). */
+typedef struct {
+    uint32_t   oplist_off;  /* start index into OPLIST u32 pool */
+    uint32_t   n_branches;  /* branch count */
+    uint32_t   flags;  /* ZBC_SEL_* (bit0 = allow_none) */
+    uint32_t   _rsvd;
+} zbc_select;
+
+/* zbc_solve: SOLVE descriptor (32 bytes). SOLVE section is zbc_solve[]; arg0 of a SOLVE instr indexes it. The OPLIST pool holds, from oplist_off, n_writeback interleaved (field_slot, var_id) u32 pairs -- the value ABI write-back keyed by object slot. When prob_len > 0, the (prob_off, prob_len) slice of the SPROB pool is a relocatable dv-solve SolveProblem blob: the engine compiles + solves it with the drawn seed and writes solver_get_value(var_id) back to each field_slot. When prob_len == 0 the minimal M1 randomizer applies: slot = seed + var_id (FixedSolveBackend, base 0). Seed is seed_value if SEED_FIXED else the frame's next draw. */
+typedef struct {
+    uint64_t   seed_value;  /* fixed-seed value (when flags & SEED_FIXED) */
+    uint32_t   oplist_off;  /* start of (field_slot, var_id) pairs in OPLIST */
+    uint32_t   n_writeback;  /* writeback pair count */
+    uint32_t   flags;  /* ZBC_SOLVE_* (bit0 = fixed seed) */
+    uint32_t   prob_off;  /* byte offset of the problem blob in the SPROB pool */
+    uint32_t   prob_len;  /* problem blob length in bytes (0 = minimal randomizer) */
+    uint32_t   _rsvd;
+} zbc_solve;
+
 /* Layout guards: sizes must match the spec (natural alignment). */
-_Static_assert(sizeof(zbc_header) == 48, "zbc_header size mismatch");
-_Static_assert(sizeof(zbc_section) == 32, "zbc_section size mismatch");
-_Static_assert(sizeof(zbc_prov) == 32, "zbc_prov size mismatch");
-_Static_assert(sizeof(zbc_comment) == 8, "zbc_comment size mismatch");
-_Static_assert(sizeof(zbc_file) == 8, "zbc_file size mismatch");
-_Static_assert(sizeof(zbc_lineent) == 8, "zbc_lineent size mismatch");
-_Static_assert(sizeof(zbc_instr) == 32, "zbc_instr size mismatch");
-_Static_assert(sizeof(zbc_coro) == 32, "zbc_coro size mismatch");
-_Static_assert(sizeof(zbc_block) == 16, "zbc_block size mismatch");
+ZBC_STATIC_ASSERT(sizeof(zbc_header) == 48, "zbc_header size mismatch");
+ZBC_STATIC_ASSERT(sizeof(zbc_section) == 32, "zbc_section size mismatch");
+ZBC_STATIC_ASSERT(sizeof(zbc_prov) == 32, "zbc_prov size mismatch");
+ZBC_STATIC_ASSERT(sizeof(zbc_comment) == 8, "zbc_comment size mismatch");
+ZBC_STATIC_ASSERT(sizeof(zbc_file) == 8, "zbc_file size mismatch");
+ZBC_STATIC_ASSERT(sizeof(zbc_lineent) == 8, "zbc_lineent size mismatch");
+ZBC_STATIC_ASSERT(sizeof(zbc_instr) == 32, "zbc_instr size mismatch");
+ZBC_STATIC_ASSERT(sizeof(zbc_coro) == 32, "zbc_coro size mismatch");
+ZBC_STATIC_ASSERT(sizeof(zbc_block) == 16, "zbc_block size mismatch");
+ZBC_STATIC_ASSERT(sizeof(zbc_select) == 16, "zbc_select size mismatch");
+ZBC_STATIC_ASSERT(sizeof(zbc_solve) == 32, "zbc_solve size mismatch");
 
 #endif /* ZUSPEC_ZBC_FORMAT_H */
