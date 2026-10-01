@@ -45,6 +45,7 @@
 /* zbc_hdr_flags: Header flag bits. */
 #define ZBC_HDR_HAS_PROV        0x0001  /* provenance sections present */
 #define ZBC_HDR_PROFILE_RUNTIME 0x0002  /* runtime profile (provenance stripped) */
+#define ZBC_HDR_COMP_INIT       0x0004  /* a coroutine constructs the component tree before the entry (P1.5) */
 
 /* zbc_secf_flags: Per-section flag bits. */
 #define ZBC_SECF_COMPRESSED 0x0001  /* payload is compressed */
