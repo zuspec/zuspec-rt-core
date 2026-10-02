@@ -172,7 +172,7 @@ typedef struct {
     uint32_t   _rsvd;
 } zbc_select;
 
-/* zbc_solve: SOLVE descriptor (32 bytes). SOLVE section is zbc_solve[]; arg0 of a SOLVE instr indexes it. The OPLIST pool holds, from oplist_off, n_writeback interleaved (field_slot, var_id) u32 pairs -- the value ABI write-back keyed by object slot. When prob_len > 0, the (prob_off, prob_len) slice of the SPROB pool is a relocatable dv-solve SolveProblem blob: the engine compiles + solves it with the drawn seed and writes solver_get_value(var_id) back to each field_slot. When prob_len == 0 the minimal M1 randomizer applies: slot = seed + var_id (FixedSolveBackend, base 0). Seed is seed_value if SEED_FIXED else the frame's next draw. */
+/* zbc_solve: SOLVE descriptor (32 bytes). SOLVE section is zbc_solve[]; arg0 of a SOLVE instr indexes it. The OPLIST pool holds, from oplist_off, n_writeback interleaved (field_slot, var_id) u32 pairs -- the value ABI write-back keyed by object slot. When prob_len > 0, the (prob_off, prob_len) slice of the SPROB pool is a relocatable dv-solve SolveProblem blob: the engine compiles + solves it with the drawn seed and writes dvs_solver_get_value(var_id) back to each field_slot. When prob_len == 0 the minimal M1 randomizer applies: slot = seed + var_id (FixedSolveBackend, base 0). Seed is seed_value if SEED_FIXED else the frame's next draw. */
 typedef struct {
     uint64_t   seed_value;  /* fixed-seed value (when flags & SEED_FIXED) */
     uint32_t   oplist_off;  /* start of (field_slot, var_id) pairs in OPLIST */
