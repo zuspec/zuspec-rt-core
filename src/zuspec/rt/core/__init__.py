@@ -20,7 +20,7 @@ shims until the cutover, so it is unaffected while the substrate lands here.
 import os
 import glob
 
-__version__ = "0.0.1"
+from .__version__ import version as __version__
 
 #: Absolute path to the package's ``share`` tree (headers, runtime sources).
 SHARE_DIR = os.path.join(os.path.dirname(__file__), "share")
