@@ -171,9 +171,12 @@ static zsp_stack_block_t *zsp_timebase_stack_block_alloc(
     zsp_timebase_t *tb,
     uint32_t block_sz) {
 
-    zsp_stack_block_t **free_list = (block_sz == 4096) ? &tb->free_4k : &tb->free_8k;
+    /* 4 KiB and 8 KiB blocks are pooled; a bigger one (a frame that does
+     * not fit 8 KiB) is allocated alone and freed when released. */
+    zsp_stack_block_t **free_list = (block_sz == 4096) ? &tb->free_4k
+        : (block_sz == 8192) ? &tb->free_8k : NULL;
 
-    if (*free_list) {
+    if (free_list && *free_list) {
         zsp_stack_block_t *block = *free_list;
         *free_list = block->prev;
         block->prev = NULL;
@@ -192,6 +195,10 @@ static zsp_stack_block_t *zsp_timebase_stack_block_alloc(
 
 static void zsp_timebase_stack_block_free(zsp_timebase_t *tb, zsp_stack_block_t *block) {
     uint32_t block_sz = (uint32_t)(block->limit - zsp_stack_block_base0(block) + 1);
+    if (block_sz != 4096 && block_sz != 8192) {
+        tb->alloc->free(tb->alloc, block);
+        return;
+    }
     zsp_stack_block_t **free_list = (block_sz == 4096) ? &tb->free_4k : &tb->free_8k;
 
     block->prev = *free_list;
@@ -547,7 +554,9 @@ zsp_frame_t *zsp_timebase_alloc_frame(
     
     /* Allocate new block if needed */
     if (!thread->block || (thread->block->base + total_sz) >= thread->block->limit) {
-        zsp_stack_block_t *block = zsp_timebase_stack_block_alloc(tb, 8192);
+        uint32_t block_sz = 8192;
+        while (block_sz <= total_sz + sizeof(uintptr_t)) block_sz *= 2;
+        zsp_stack_block_t *block = zsp_timebase_stack_block_alloc(tb, block_sz);
         block->prev = thread->block;
         thread->block = block;
     }
