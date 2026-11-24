@@ -26,33 +26,43 @@
 #define ZBC_VERSION_MINOR 0
 
 /* zbc_sec_kind: Section kinds. Readers skip unknown kinds (forward-compat). */
-#define ZBC_SEC_CODE   0x0001  /* opcode stream */
-#define ZBC_SEC_CORO   0x0002  /* coroutine/func descriptors */
-#define ZBC_SEC_TYPE   0x0003  /* type/field metadata */
-#define ZBC_SEC_CONST  0x0004  /* >64-bit literal constant pool */
-#define ZBC_SEC_SOLVE  0x0005  /* SolveProblem blobs (P4) */
-#define ZBC_SEC_STRB   0x0006  /* string blob */
-#define ZBC_SEC_STRO   0x0007  /* string offsets */
-#define ZBC_SEC_FILE   0x0008  /* file table */
-#define ZBC_SEC_PROV   0x0009  /* provenance records */
-#define ZBC_SEC_CMNT   0x000a  /* comment records */
-#define ZBC_SEC_LINE   0x000b  /* pc->src_ref line table */
-#define ZBC_SEC_BLOCK  0x000c  /* FSM block table (zbc_block[]) */
-#define ZBC_SEC_OPLIST 0x000d  /* u32 operand lists (PAR/SELECT branch ids) */
-#define ZBC_SEC_SELECT 0x000e  /* weighted-SELECT descriptors (zbc_select[]) */
-#define ZBC_SEC_SPROB  0x000f  /* relocatable dv-solve SolveProblem blobs */
-#define ZBC_SEC_ENTRY  0x0010  /* entry points (zbc_entry[]) */
-#define ZBC_SEC_LOCAL  0x0011  /* named locals (zbc_localent[]; debug lowering) */
-#define ZBC_SEC_SRC    0x0012  /* PSS source texts (zbc_srcent[]; debug profile) */
-#define ZBC_SEC_IDENT  0x0013  /* API hash + generation id (zbc_ident; debug profile) */
-#define ZBC_SEC_META   0x0014  /* host metadata documents (zbc_metaent[]; debug profile) */
-#define ZBC_SEC_COMP   0x0015  /* component tree (zbc_comp + u32 bases[]) */
-#define ZBC_SEC_MSG    0x0016  /* message table (zbc_msgtab + arrays) and run strings */
-#define ZBC_SEC_REG    0x0017  /* register accesses (zbc_regent[]; debug lowering) */
-#define ZBC_SEC_CHAN   0x0018  /* channel operations (zbc_chanent[]; debug lowering) */
-#define ZBC_SEC_COV    0x0019  /* coverage items (zbc_covent[]; debug lowering) */
-#define ZBC_SEC_IMPORT 0x001a  /* user import names (zbc_impent[]) */
-#define ZBC_SEC_ACT    0x001b  /* activation table (zbc_acttab + arrays) */
+#define ZBC_SEC_CODE    0x0001  /* opcode stream */
+#define ZBC_SEC_CORO    0x0002  /* coroutine/func descriptors */
+#define ZBC_SEC_TYPE    0x0003  /* type/field metadata */
+#define ZBC_SEC_CONST   0x0004  /* >64-bit literal constant pool */
+#define ZBC_SEC_SOLVE   0x0005  /* SolveProblem blobs (P4) */
+#define ZBC_SEC_STRB    0x0006  /* string blob */
+#define ZBC_SEC_STRO    0x0007  /* string offsets */
+#define ZBC_SEC_FILE    0x0008  /* file table */
+#define ZBC_SEC_PROV    0x0009  /* provenance records */
+#define ZBC_SEC_CMNT    0x000a  /* comment records */
+#define ZBC_SEC_LINE    0x000b  /* pc->src_ref line table */
+#define ZBC_SEC_BLOCK   0x000c  /* FSM block table (zbc_block[]) */
+#define ZBC_SEC_OPLIST  0x000d  /* u32 operand lists (PAR/SELECT branch ids) */
+#define ZBC_SEC_SELECT  0x000e  /* weighted-SELECT descriptors (zbc_select[]) */
+#define ZBC_SEC_SPROB   0x000f  /* relocatable dv-solve SolveProblem blobs */
+#define ZBC_SEC_ENTRY   0x0010  /* entry points (zbc_entry[]) */
+#define ZBC_SEC_LOCAL   0x0011  /* named locals (zbc_localent[]; debug lowering) */
+#define ZBC_SEC_SRC     0x0012  /* PSS source texts (zbc_srcent[]; debug profile) */
+#define ZBC_SEC_IDENT   0x0013  /* API hash + generation id (zbc_ident; debug profile) */
+#define ZBC_SEC_META    0x0014  /* host metadata documents (zbc_metaent[]; debug profile) */
+#define ZBC_SEC_COMP    0x0015  /* component tree (zbc_comp + u32 bases[]) */
+#define ZBC_SEC_MSG     0x0016  /* message table (zbc_msgtab + arrays) and run strings */
+#define ZBC_SEC_REG     0x0017  /* register accesses (zbc_regent[]; debug lowering) */
+#define ZBC_SEC_CHAN    0x0018  /* channel operations (zbc_chanent[]; debug lowering) */
+#define ZBC_SEC_COV     0x0019  /* coverage items (zbc_covent[]; debug lowering) */
+#define ZBC_SEC_IMPORT  0x001a  /* user import names (zbc_impent[]) */
+#define ZBC_SEC_ACT     0x001b  /* activation table (zbc_acttab + arrays) */
+#define ZBC_SEC_LAYOUT  0x001c  /* component slot and instance names (zbc_layout) */
+#define ZBC_SEC_REGMAP  0x001d  /* register map (zbc_regmap) */
+#define ZBC_SEC_SEEDKEY 0x001e  /* each coroutine's seed key, u64[coro count] (keyed seeds, F3.9) */
+#define ZBC_SEC_COVG    0x001f  /* covergroup instances (zbc_covg; F4.4) */
+#define ZBC_SEC_EXEC    0x0020  /* executors and executor groups (zbc_exectab + arrays; F5.4a) */
+#define ZBC_SEC_EVENT   0x0021  /* host-fed channels (zbc_evtent[]; F5.5a) */
+#define ZBC_SEC_MEMMAP  0x0022  /* address spaces and regions (zbc_memmap; F7.2c) */
+
+/* zbc_evt_kind: zbc_evtent.kind: equal to the notify kind (N_IRQ 1 has no rows). */
+#define ZBC_EVT_CHAN 0x0002  /* a channel_c; fed by notify N_CHAN */
 
 /* zbc_msg_kind: zbc_msgarg.kind: how a formatted value prints. */
 #define ZBC_MSG_INT     0x0000  /* integer */
@@ -60,6 +70,7 @@
 #define ZBC_MSG_ENUM    0x0002  /* enum (items follow) */
 #define ZBC_MSG_STRING  0x0003  /* string id */
 #define ZBC_MSG_CHANDLE 0x0004  /* chandle */
+#define ZBC_MSG_FLOAT   0x0005  /* float (binary64 bits) */
 
 /* zbc_hdr_flags: Header flag bits. */
 #define ZBC_HDR_HAS_PROV        0x0001  /* provenance sections present */
@@ -73,6 +84,7 @@
 
 /* zbc_comp_flags: COMP flag bits. */
 #define ZBC_COMP_F_NODE_INST 0x0001  /* an activation node runs in an instance other than its parent's (a static offset or one its solve chooses) */
+#define ZBC_COMP_F_RUN_HOOKS 0x0002  /* coroutines init_coro+1 ($run_start: exec run_start, top-down) and init_coro+2 ($run_end: exec run_end, bottom-up) run before and after a root action */
 
 /* zbc_local_kind: What a named local's slot holds. */
 #define ZBC_LOCAL_INT     0x0000  /* integer */
@@ -81,6 +93,7 @@
 #define ZBC_LOCAL_STRING  0x0003  /* string */
 #define ZBC_LOCAL_CHANDLE 0x0004  /* chandle */
 #define ZBC_LOCAL_OPAQUE  0x0005  /* opaque handle */
+#define ZBC_LOCAL_FLOAT   0x0006  /* float (binary64 bits) */
 
 /* zbc_local_flags: Named-local flag bits. */
 #define ZBC_LOCAL_F_SIGNED 0x0001  /* signed integer */
@@ -104,6 +117,8 @@
 
 /* zbc_solve_flags: SOLVE descriptor flag bits. */
 #define ZBC_SOLVE_SEED_FIXED 0x0001  /* use seed_value; else draw from the frame stream */
+#define ZBC_SOLVE_PROCEDURAL 0x0002  /* a procedural randomize: each (k, var_id) pair keeps var_id's value in the frame's solved slot k for SOLVE_GET; nothing is written back */
+#define ZBC_SOLVE_ARRAYS     0x0004  /* the problem reads lists (dv-solve arrays): each input pair whose var_id >= the blob's n_vars is (key, n_vars + array_id), key = the field slot holding the list's heap handle (procedural: the SOLVE_PIN id it is pinned at); the blob's ArraySpec gives each array's element width, signedness and kind (RAND lists are solved and written back). An engine without heap lists must refuse it */
 
 /* zbc_entry_kind: Entry-point kinds. */
 #define ZBC_ENTRY_ACTION   0x0000  /* a top-level action coroutine */
@@ -220,10 +235,12 @@ typedef struct {
     uint32_t   text;  /* StrId: the file's full text */
 } zbc_srcent;
 
-/* zbc_ident: Image identity (16 bytes; IDENT section, one record; debug profile). */
+/* zbc_ident: Image identity (24 bytes; IDENT section, one record; debug profile). */
 typedef struct {
     uint64_t   api_hash;  /* FNV-1a/64 of every entry and import signature (0=unset) */
     uint64_t   generation;  /* caller-supplied build generation (0=unset) */
+    uint32_t   time_exp;  /* int32: one WAIT TIME tick is 10^time_exp s (-12 = ps; no IDENT: -12) */
+    uint32_t   _pad;
 } zbc_ident;
 
 /* zbc_metaent: One host metadata document carried in a debug image (8 bytes; META section). */
@@ -245,6 +262,63 @@ typedef struct {
     uint32_t   n_inst;  /* instance count; n_inst u32 bases follow */
     uint32_t   flags;  /* zbc_comp_flags */
 } zbc_comp;
+
+/* zbc_layout: Component layout (12 bytes; LAYOUT section, one record): slot names and types and instance paths and types, for debuggers (codegen/debug profiles). */
+typedef struct {
+    uint32_t   root;  /* StrId: the root component type */
+    uint32_t   slots;  /* StrId: JSON [[name, descriptor], ...], one per component slot in slot order */
+    uint32_t   insts;  /* StrId: JSON [[path, type], ...], one per instance in pre-order (root path "") */
+} zbc_layout;
+
+/* zbc_covg: Covergroup instances (4 bytes; COVG section, one record): each one's coverpoints, bins, crosses and iff flags as plain data (F4.4; codegen/debug). */
+typedef struct {
+    uint32_t   doc;  /* StrId: JSON [covergroup instance], indexed by COV_SAMPLE's covg id */
+} zbc_covg;
+
+/* zbc_exectab: Executor table (16 bytes; EXEC section). Followed by zbc_execent[n_exec] (row index = the executor id requests carry), zbc_execgrp[n_groups] and u32 members[n_members] (F5.4a; codegen/debug profiles). */
+typedef struct {
+    uint32_t   n_exec;  /* zbc_execent records (executor instances) */
+    uint32_t   n_groups;  /* zbc_execgrp records (executor groups) */
+    uint32_t   n_members;  /* u32 group member executor ids */
+    uint32_t   _pad;
+} zbc_exectab;
+
+/* zbc_execent: One executor instance (12 bytes; EXEC section), in instance order. */
+typedef struct {
+    uint32_t   path;  /* StrId: the executor instance's path */
+    uint32_t   type;  /* StrId: its component type */
+    uint32_t   trait;  /* StrId: its trait struct type ("" = none) */
+} zbc_execent;
+
+/* zbc_execgrp: One executor group (16 bytes; EXEC section); members are executor ids. */
+typedef struct {
+    uint32_t   path;  /* StrId: the group instance's path */
+    uint32_t   trait;  /* StrId: its trait struct type */
+    uint32_t   first;  /* its first member in members[] */
+    uint32_t   count;  /* its member count */
+} zbc_execgrp;
+
+/* zbc_evtent: One host-fed source (32 bytes; EVENT section): every scalar channel_c instance, in slot order; the row index is the id N_CHAN notifies (F5.5a; codegen/debug profiles). */
+typedef struct {
+    uint32_t   path;  /* StrId: the channel's instance path (``d0.c``) */
+    uint32_t   kind;  /* zbc_evt_kind: the notify kind that feeds it */
+    uint32_t   width;  /* element width in bits */
+    uint32_t   flags;  /* bit 0: the element is signed */
+    uint32_t   count;  /* component slot of its element count */
+    uint32_t   head;  /* component slot of its ring head */
+    uint32_t   buf;  /* component slot of its first ring element */
+    uint32_t   depth;  /* ring elements (consecutive slots from buf) */
+} zbc_evtent;
+
+/* zbc_regmap: Register map (4 bytes; REGMAP section, one record): each register instance's path, offset, width, access and fields, as the host built it (debug profile). */
+typedef struct {
+    uint32_t   doc;  /* StrId: JSON {reg-id: register}, reg-id an instance index (decimal string) */
+} zbc_regmap;
+
+/* zbc_memmap: Memory map (4 bytes; MEMMAP section, one record): each address space instance and the regions added to it, as the host built it (F7.2c; codegen/debug profiles). */
+typedef struct {
+    uint32_t   doc;  /* StrId: JSON {"spaces": [...], "regions": [...]} */
+} zbc_memmap;
 
 /* zbc_msgtab: Message table (32 bytes; MSG section). Followed, in order, by zbc_msg[n_msgs], zbc_msgarg[n_args], zbc_msgitem[n_items], u32 slots[n_slots], u32 str_off[n_strings] and the string text. Self-contained (not the STRB string table), so a runtime image can format message()/error()/fatal() text (P4.2g). */
 typedef struct {
@@ -334,7 +408,7 @@ typedef struct {
     uint32_t   _pad;
 } zbc_act;
 
-/* zbc_actnode: One action node of an activation (80 bytes; ACT section). */
+/* zbc_actnode: One action node of an activation (88 bytes; ACT section). ``addr0`` indexes the u32 lists at ``n`` then ``n`` quads (space string, addr slot, size slot, permanent slot or 0xFFFFFFFF) of the node's address claims, which the run's ledger keeps apart; list index 0 never holds them. A contiguous claim has addr slot 0xFFFFFFFF; after the quads come ``m`` then, per contiguous claim, its quad index, alignment slot (or 0xFFFFFFFF), ``$addr`` slot the run writes the placed address to (or 0xFFFFFFFF; F7.4b), ``k`` and ``k`` (trait field string, slot) pairs (F7.3e). ``sinfer0`` indexes ``n`` then, per state input, its ref string, ``m`` and ``m`` (instance, ``k``, ``k`` hidden node ids) groups (M9a5c); after them, in the same form, the inferred stream partners per unpaired stream reference (M9a6b). */
 typedef struct {
     uint32_t   path;  /* string */
     uint32_t   type;  /* string */
@@ -355,7 +429,9 @@ typedef struct {
     uint32_t   n_picks;
     uint32_t   child0;  /* u32 list: child node ids */
     uint32_t   n_children;
-    uint32_t   _pad;
+    uint32_t   addr0;  /* u32 list: address claims, 0 = none (F7.3d) */
+    uint32_t   infer0;  /* u32 list: inferred for (consumer, ref string, candidate); 0xFFFFFFFF = traversed (M9a3) */
+    uint32_t   sinfer0;  /* u32 list: inferred state writers, then stream partners; 0 = none (M9a5c, M9a6b) */
 } zbc_actnode;
 
 /* zbc_actscope: One activity block (16 bytes; ACT section). */
@@ -394,7 +470,7 @@ typedef struct {
     uint32_t   node;
     uint32_t   slot;
     uint32_t   width;
-    uint32_t   flags;  /* 1 signed, 2 rand, 4 busy_lock */
+    uint32_t   flags;  /* 1 signed, 2 rand, 4 busy_lock, 8 array (a list the constraints read), 16 attr (a resource instance's rand attribute: pool in pick); bits 16-31: busy_word (busy mask word; 63 instances each: 63*w..), or with 16 the attribute's instance */
     uint32_t   comp_read;  /* 0xFFFFFFFF = none */
     uint32_t   loop_local;  /* string; 0xFFFFFFFF = none */
     uint32_t   loop_node;  /* 0xFFFFFFFF = none */
@@ -454,7 +530,7 @@ typedef struct {
     uint32_t   _pad;
 } zbc_actwrite;
 
-/* zbc_actpick: One unbound buffer input (24 bytes; ACT section). */
+/* zbc_actpick: One unbound buffer input (32 bytes; ACT section). */
 typedef struct {
     uint32_t   ref;  /* string */
     uint32_t   slot0;  /* u32 list */
@@ -462,6 +538,8 @@ typedef struct {
     uint32_t   sel_slot;
     uint32_t   pool0;  /* u32 list of (inst, pool) pairs */
     uint32_t   n_pools;  /* pairs */
+    uint32_t   infer0;  /* u32 list: per instance, (inst, n, n inferred nodes) (M9a3) */
+    uint32_t   n_infer;  /* instances */
 } zbc_actpick;
 
 /* zbc_instr: One fixed-width instruction (32 bytes). CODE section is zbc_instr[]. */
@@ -506,7 +584,7 @@ typedef struct {
     uint32_t   _rsvd;
 } zbc_select;
 
-/* zbc_solve: SOLVE descriptor (32 bytes). SOLVE section is zbc_solve[]; arg0 of a SOLVE instr indexes it. The OPLIST pool holds, from oplist_off, n_writeback interleaved (field_slot, var_id) u32 pairs -- the value ABI write-back keyed by object slot. When prob_len > 0, the (prob_off, prob_len) slice of the SPROB pool is a relocatable dv-solve SolveProblem blob: the engine compiles + solves it with the drawn seed and writes dvs_solver_get_value(var_id) back to each field_slot. When prob_len == 0 the minimal M1 randomizer applies: slot = seed + var_id (FixedSolveBackend, base 0). Seed is seed_value if SEED_FIXED else the frame's next draw. */
+/* zbc_solve: SOLVE descriptor (32 bytes). SOLVE section is zbc_solve[]; arg0 of a SOLVE instr indexes it. The OPLIST pool holds, from oplist_off, n_writeback interleaved (field_slot, var_id) u32 pairs -- the value ABI write-back keyed by object slot -- then n_input more: non-rand fields a constraint reads, each var pinned to its field's value before the solve and not written back (with ZBC_SOLVE_ARRAYS, some are lists: see that flag). When prob_len > 0, the (prob_off, prob_len) slice of the SPROB pool is a relocatable dv-solve SolveProblem blob: the engine compiles + solves it with the drawn seed and writes dvs_solver_get_value(var_id) back to each field_slot. When prob_len == 0 the minimal M1 randomizer applies: slot = seed + var_id (FixedSolveBackend, base 0). Seed is seed_value if SEED_FIXED else the frame's next draw. */
 typedef struct {
     uint64_t   seed_value;  /* fixed-seed value (when flags & SEED_FIXED) */
     uint32_t   oplist_off;  /* start of (field_slot, var_id) pairs in OPLIST */
@@ -514,18 +592,18 @@ typedef struct {
     uint32_t   flags;  /* ZBC_SOLVE_* (bit0 = fixed seed) */
     uint32_t   prob_off;  /* byte offset of the problem blob in the SPROB pool */
     uint32_t   prob_len;  /* problem blob length in bytes (0 = minimal randomizer) */
-    uint32_t   _rsvd;
+    uint32_t   n_input;  /* input pair count (after the writeback pairs) */
 } zbc_solve;
 
-/* zbc_entry: Entry point (32 bytes). ENTRY section is zbc_entry[]: where a host may enter the image. A function's arguments go in the root frame's args (LD_ARG), one per leaf of each parameter, in the order sig.params lists them; sig is JSON {"params": [[name, type descriptor], ...], "returns": descriptor|null}. */
+/* zbc_entry: Entry point (32 bytes). ENTRY section is zbc_entry[]: where a host may enter the image. A function's arguments go in the root frame's args (LD_ARG), one per leaf of each parameter, in the order sig.params lists them; sig is JSON {"params": [[name, type descriptor], ...], "returns": descriptor|null}. An action's object layout (obj) is JSON [[name, type descriptor], ...] in slot order; a rand field's descriptor has "rand": true. */
 typedef struct {
     uint32_t   name;  /* StrId: action coroutine name, or <comp type>::<fn> */
     uint32_t   coro;  /* CORO index the host starts */
     uint32_t   kind;  /* ZBC_ENTRY_* */
     uint32_t   comp_type;  /* StrId of a function's component type (0=none) */
     uint32_t   sig;  /* StrId of the JSON signature {params, returns} (0=none) */
-    uint32_t   _rsvd0;
-    uint32_t   _rsvd1;
+    uint32_t   qname;  /* StrId of an action entry's qualified action type (0=none) */
+    uint32_t   obj;  /* StrId of the JSON action-object layout (0=none) */
     uint32_t   _rsvd2;
 } zbc_entry;
 
@@ -541,10 +619,18 @@ ZBC_STATIC_ASSERT(sizeof(zbc_regent) == 12, "zbc_regent size mismatch");
 ZBC_STATIC_ASSERT(sizeof(zbc_chanent) == 24, "zbc_chanent size mismatch");
 ZBC_STATIC_ASSERT(sizeof(zbc_covent) == 20, "zbc_covent size mismatch");
 ZBC_STATIC_ASSERT(sizeof(zbc_srcent) == 8, "zbc_srcent size mismatch");
-ZBC_STATIC_ASSERT(sizeof(zbc_ident) == 16, "zbc_ident size mismatch");
+ZBC_STATIC_ASSERT(sizeof(zbc_ident) == 24, "zbc_ident size mismatch");
 ZBC_STATIC_ASSERT(sizeof(zbc_metaent) == 8, "zbc_metaent size mismatch");
 ZBC_STATIC_ASSERT(sizeof(zbc_impent) == 8, "zbc_impent size mismatch");
 ZBC_STATIC_ASSERT(sizeof(zbc_comp) == 16, "zbc_comp size mismatch");
+ZBC_STATIC_ASSERT(sizeof(zbc_layout) == 12, "zbc_layout size mismatch");
+ZBC_STATIC_ASSERT(sizeof(zbc_covg) == 4, "zbc_covg size mismatch");
+ZBC_STATIC_ASSERT(sizeof(zbc_exectab) == 16, "zbc_exectab size mismatch");
+ZBC_STATIC_ASSERT(sizeof(zbc_execent) == 12, "zbc_execent size mismatch");
+ZBC_STATIC_ASSERT(sizeof(zbc_execgrp) == 16, "zbc_execgrp size mismatch");
+ZBC_STATIC_ASSERT(sizeof(zbc_evtent) == 32, "zbc_evtent size mismatch");
+ZBC_STATIC_ASSERT(sizeof(zbc_regmap) == 4, "zbc_regmap size mismatch");
+ZBC_STATIC_ASSERT(sizeof(zbc_memmap) == 4, "zbc_memmap size mismatch");
 ZBC_STATIC_ASSERT(sizeof(zbc_msgtab) == 32, "zbc_msgtab size mismatch");
 ZBC_STATIC_ASSERT(sizeof(zbc_msg) == 16, "zbc_msg size mismatch");
 ZBC_STATIC_ASSERT(sizeof(zbc_msgarg) == 16, "zbc_msgarg size mismatch");
@@ -552,7 +638,7 @@ ZBC_STATIC_ASSERT(sizeof(zbc_msgitem) == 16, "zbc_msgitem size mismatch");
 ZBC_STATIC_ASSERT(sizeof(zbc_acttab) == 64, "zbc_acttab size mismatch");
 ZBC_STATIC_ASSERT(sizeof(zbc_actinit) == 16, "zbc_actinit size mismatch");
 ZBC_STATIC_ASSERT(sizeof(zbc_act) == 80, "zbc_act size mismatch");
-ZBC_STATIC_ASSERT(sizeof(zbc_actnode) == 80, "zbc_actnode size mismatch");
+ZBC_STATIC_ASSERT(sizeof(zbc_actnode) == 88, "zbc_actnode size mismatch");
 ZBC_STATIC_ASSERT(sizeof(zbc_actscope) == 16, "zbc_actscope size mismatch");
 ZBC_STATIC_ASSERT(sizeof(zbc_actsite) == 16, "zbc_actsite size mismatch");
 ZBC_STATIC_ASSERT(sizeof(zbc_actcone) == 40, "zbc_actcone size mismatch");
@@ -561,7 +647,7 @@ ZBC_STATIC_ASSERT(sizeof(zbc_actcon) == 40, "zbc_actcon size mismatch");
 ZBC_STATIC_ASSERT(sizeof(zbc_actpool) == 48, "zbc_actpool size mismatch");
 ZBC_STATIC_ASSERT(sizeof(zbc_actclaim) == 24, "zbc_actclaim size mismatch");
 ZBC_STATIC_ASSERT(sizeof(zbc_actwrite) == 24, "zbc_actwrite size mismatch");
-ZBC_STATIC_ASSERT(sizeof(zbc_actpick) == 24, "zbc_actpick size mismatch");
+ZBC_STATIC_ASSERT(sizeof(zbc_actpick) == 32, "zbc_actpick size mismatch");
 ZBC_STATIC_ASSERT(sizeof(zbc_instr) == 32, "zbc_instr size mismatch");
 ZBC_STATIC_ASSERT(sizeof(zbc_coro) == 32, "zbc_coro size mismatch");
 ZBC_STATIC_ASSERT(sizeof(zbc_block) == 16, "zbc_block size mismatch");
