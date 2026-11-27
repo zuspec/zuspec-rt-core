@@ -22,7 +22,7 @@
 #define ZBC_MAGIC1 0x42
 #define ZBC_MAGIC2 0x43
 #define ZBC_MAGIC3 0x1a
-#define ZBC_VERSION_MAJOR 1
+#define ZBC_VERSION_MAJOR 2
 #define ZBC_VERSION_MINOR 0
 
 /* zbc_sec_kind: Section kinds. Readers skip unknown kinds (forward-compat). */
@@ -60,6 +60,10 @@
 #define ZBC_SEC_EXEC    0x0020  /* executors and executor groups (zbc_exectab + arrays; F5.4a) */
 #define ZBC_SEC_EVENT   0x0021  /* host-fed channels (zbc_evtent[]; F5.5a) */
 #define ZBC_SEC_MEMMAP  0x0022  /* address spaces and regions (zbc_memmap; F7.2c) */
+#define ZBC_SEC_API     0x0023  /* import-interface APIs (zbc_apient[]) */
+#define ZBC_SEC_CLASS   0x0024  /* types: layouts and methods (zbc_class[]) */
+#define ZBC_SEC_ROOT    0x0025  /* root candidates (zbc_rootent[]) */
+#define ZBC_SEC_ROOTIMG 0x0026  /* the other root candidates' images, each 8-aligned (ROOT locates them) */
 
 /* zbc_evt_kind: zbc_evtent.kind: equal to the notify kind (N_IRQ 1 has no rows). */
 #define ZBC_EVT_CHAN 0x0002  /* a channel_c; fed by notify N_CHAN */
@@ -72,11 +76,19 @@
 #define ZBC_MSG_CHANDLE 0x0004  /* chandle */
 #define ZBC_MSG_FLOAT   0x0005  /* float (binary64 bits) */
 
-/* zbc_hdr_flags: Header flag bits. */
+/* zbc_hdr_flags: Header flag bits. Bits 0x0100-0x8000 (ZBC_HDR_EXT_MASK) each declare an extension profile the image uses; a loader refuses an image declaring one it does not implement, and an opcode in an extension's range the image does not declare. */
 #define ZBC_HDR_HAS_PROV        0x0001  /* provenance sections present */
 #define ZBC_HDR_PROFILE_RUNTIME 0x0002  /* runtime profile (provenance stripped) */
 #define ZBC_HDR_COMP_INIT       0x0004  /* a coroutine constructs the component tree before the entry (P1.5) */
 #define ZBC_HDR_PROFILE_DEBUG   0x0008  /* debug profile (provenance kept; may carry PSS sources) */
+#define ZBC_HDR_EXT_PSS         0x0100  /* the pss extension: opcodes 0x80-0xBF and the ACT, COMP, EXEC, EVENT, MEMMAP and COVG sections */
+
+/* zbc_profile: Profiles: the core opcode and section set, and extensions an image declares in its header flags, each with its own opcode range (0xC0-0xFF: the next front end). */
+#define ZBC_HDR_EXT_MASK  0xff00  /* header flag bits that declare extensions */
+#define ZBC_OP_CORE_FIRST 0x0000  /* core opcodes: every implementation */
+#define ZBC_OP_CORE_LAST  0x007f
+#define ZBC_OP_PSS_FIRST  0x0080  /* the pss extension's opcodes (ZBC_HDR_EXT_PSS) */
+#define ZBC_OP_PSS_LAST   0x00bf
 
 /* zbc_secf_flags: Per-section flag bits. */
 #define ZBC_SECF_COMPRESSED 0x0001  /* payload is compressed */
@@ -123,6 +135,29 @@
 /* zbc_entry_kind: Entry-point kinds. */
 #define ZBC_ENTRY_ACTION   0x0000  /* a top-level action coroutine */
 #define ZBC_ENTRY_FUNCTION 0x0001  /* a component function */
+
+/* zbc_entry_flags: Entry-point flag bits. */
+#define ZBC_ENTRY_F_EXPORTED 0x0001  /* an exported action: a host may run it by name and a typed API gives it a method (PSS export statements, --export-action) */
+
+/* zbc_imp_flags: Import flag bits. */
+#define ZBC_IMP_F_BLOCKING 0x0001  /* the call may consume host time */
+#define ZBC_IMP_F_TARGET   0x0002  /* declared import target */
+#define ZBC_IMP_F_SOLVE    0x0004  /* declared import solve */
+
+/* zbc_api_kind: API kinds. */
+#define ZBC_API_BUILTIN 0x0000  /* an API the engine defines (mem, config, seq) */
+#define ZBC_API_USER    0x0001  /* the PSS imports of one package or component */
+
+/* zbc_api_id: API ids (host-abi.md, the import interface). */
+#define ZBC_API_MEM        0x0000  /* memory and register access (read, write) */
+#define ZBC_API_CONFIG     0x0001  /* solve-time configuration (reserved) */
+#define ZBC_API_SEQ        0x0002  /* host sequences (reserved) */
+#define ZBC_API_USER_FIRST 0x0010  /* the first user API id */
+
+/* zbc_class_kind: CLASS row kinds. */
+#define ZBC_CLASS_COMPONENT 0x0000
+#define ZBC_CLASS_ACTION    0x0001
+#define ZBC_CLASS_STRUCT    0x0002
 
 /* zbc_cmt_kind: Comment kinds. */
 #define ZBC_CMT_LEADING  0x0001
@@ -249,11 +284,46 @@ typedef struct {
     uint32_t   text;  /* StrId: the document's text (the host's format) */
 } zbc_metaent;
 
-/* zbc_impent: One user import's name (8 bytes; IMPORT section, sorted by fn_id; codegen/debug profiles). */
+/* zbc_impent: One user import (24 bytes; IMPORT section, sorted by fn_id; codegen/debug profiles): its name, API, kind and signature, which a host links against. */
 typedef struct {
     uint32_t   fn_id;  /* IMPORT fn_id the code calls */
     uint32_t   name;  /* StrId: the import's PSS name */
+    uint32_t   api;  /* API id (an API row): the package or component declaring it */
+    uint32_t   flags;  /* zbc_imp_flags */
+    uint32_t   sig;  /* StrId: JSON {arg_types, ret_type, string_at[, ret_types]} (0=none) */
+    uint32_t   qname;  /* StrId: the import's qualified name (0=none) */
 } zbc_impent;
+
+/* zbc_apient: One API of the import interface (16 bytes; API section, sorted by id; codegen/debug profiles). Ids 0-15 are built in; user APIs are 16 up, one per package or component declaring imports, in name order. */
+typedef struct {
+    uint32_t   id;  /* the API id requests carry (zbc_api_id) */
+    uint32_t   name;  /* StrId: mem, config, seq, or the declaring scope */
+    uint32_t   kind;  /* zbc_api_kind */
+    uint32_t   n_fns;  /* the IMPORT rows naming this API */
+} zbc_apient;
+
+/* zbc_class: One type (40 bytes; CLASS section; codegen/debug profiles): every component type in the tree and its bases, every action with an entry and its bases, and every plain-data struct their fields use, by qname. ``fields`` is the type's normative native layout (value-abi.md 2.1); slot k of an object is row k. */
+typedef struct {
+    uint32_t   qname;  /* StrId: the type's qualified name */
+    uint32_t   kind;  /* zbc_class_kind */
+    uint32_t   base;  /* StrId: its base type (0=none) */
+    uint32_t   coro;  /* an action's coroutine (its traverse method); 0xFFFFFFFF = none */
+    uint32_t   n_fields;  /* leaves (slots) of an object of the type */
+    uint32_t   size;  /* native size in bytes (value-abi.md 2.1) */
+    uint32_t   align;  /* native alignment in bytes */
+    uint32_t   fields;  /* StrId: JSON [[name, descriptor, offset, size], ...] in slot order */
+    uint32_t   methods;  /* StrId: JSON [[name, entry symbol], ...]: its functions' entries (0=none) */
+    uint32_t   _pad;
+} zbc_class;
+
+/* zbc_rootent: One root candidate (32 bytes; ROOT section; codegen/debug profiles). Row 0 is the image's own root, whose tables (COMP, ACT, ENTRY, ...) are this image's. Every other candidate's tables are a complete image of its own, nested in ROOTIMG at (img_off, img_size). */
+typedef struct {
+    uint32_t   type;  /* StrId: the root candidate's component type */
+    uint32_t   ctor;  /* StrId: JSON {name, params: [{name, type}]}: its constructor (0=none) */
+    uint64_t   api_hash;  /* the API hash of the image built for this root */
+    uint64_t   img_off;  /* offset of its image in the ROOTIMG section (img_size 0: this image) */
+    uint64_t   img_size;  /* byte length of its image (0: this image) */
+} zbc_rootent;
 
 /* zbc_comp: Component tree (16 bytes; COMP section, one record followed by n_inst u32 instance bases in pre-order, the root 0). Present when the image has a component tree (P1.5). */
 typedef struct {
@@ -263,11 +333,12 @@ typedef struct {
     uint32_t   flags;  /* zbc_comp_flags */
 } zbc_comp;
 
-/* zbc_layout: Component layout (12 bytes; LAYOUT section, one record): slot names and types and instance paths and types, for debuggers (codegen/debug profiles). */
+/* zbc_layout: Component layout (16 bytes; LAYOUT section, one record; codegen/debug profiles): the component object's slots, each with its name, type and offset in the normative native layout (value-abi.md 2.1), and its instances' paths and types. */
 typedef struct {
     uint32_t   root;  /* StrId: the root component type */
-    uint32_t   slots;  /* StrId: JSON [[name, descriptor], ...], one per component slot in slot order */
+    uint32_t   slots;  /* StrId: JSON [[name, descriptor, offset], ...], one per component slot in slot order */
     uint32_t   insts;  /* StrId: JSON [[path, type], ...], one per instance in pre-order (root path "") */
+    uint32_t   size;  /* native size of the component object in bytes */
 } zbc_layout;
 
 /* zbc_covg: Covergroup instances (4 bytes; COVG section, one record): each one's coverpoints, bins, crosses and iff flags as plain data (F4.4; codegen/debug). */
@@ -280,7 +351,7 @@ typedef struct {
     uint32_t   n_exec;  /* zbc_execent records (executor instances) */
     uint32_t   n_groups;  /* zbc_execgrp records (executor groups) */
     uint32_t   n_members;  /* u32 group member executor ids */
-    uint32_t   _pad;
+    uint32_t   default_exec;  /* the default executor's row + 1; 0: none (pssvm 8e) */
 } zbc_exectab;
 
 /* zbc_execent: One executor instance (12 bytes; EXEC section), in instance order. */
@@ -380,7 +451,7 @@ typedef struct {
 /* zbc_actinit: A non-rand attribute's initial value (16 bytes; ACT section). */
 typedef struct {
     uint32_t   slot;
-    uint32_t   unknown;  /* 1: computed at traversal (value unused) */
+    uint32_t   unknown;  /* 1: computed at traversal (value unused); 2: the node's uid, numbered per run */
     uint64_t   value;  /* constant initial value (two's complement) */
 } zbc_actinit;
 
@@ -595,7 +666,7 @@ typedef struct {
     uint32_t   n_input;  /* input pair count (after the writeback pairs) */
 } zbc_solve;
 
-/* zbc_entry: Entry point (32 bytes). ENTRY section is zbc_entry[]: where a host may enter the image. A function's arguments go in the root frame's args (LD_ARG), one per leaf of each parameter, in the order sig.params lists them; sig is JSON {"params": [[name, type descriptor], ...], "returns": descriptor|null}. An action's object layout (obj) is JSON [[name, type descriptor], ...] in slot order; a rand field's descriptor has "rand": true. */
+/* zbc_entry: Entry point (40 bytes). ENTRY section is zbc_entry[]: where a host may enter the image. A function's arguments go in the root frame's args (LD_ARG), one per leaf of each parameter, in the order sig.params lists them; sig is JSON {"params": [[name, type descriptor], ...], "returns": descriptor|null}. An action's object layout (obj) is JSON [[name, type descriptor], ...] in slot order; a rand field's descriptor has "rand": true. */
 typedef struct {
     uint32_t   name;  /* StrId: action coroutine name, or <comp type>::<fn> */
     uint32_t   coro;  /* CORO index the host starts */
@@ -604,7 +675,9 @@ typedef struct {
     uint32_t   sig;  /* StrId of the JSON signature {params, returns} (0=none) */
     uint32_t   qname;  /* StrId of an action entry's qualified action type (0=none) */
     uint32_t   obj;  /* StrId of the JSON action-object layout (0=none) */
-    uint32_t   _rsvd2;
+    uint32_t   flags;  /* zbc_entry_flags */
+    uint32_t   fixed;  /* StrId of the JSON list of fields an exported action fixes (0=none) */
+    uint32_t   _pad;
 } zbc_entry;
 
 /* Layout guards: sizes must match the spec (natural alignment). */
@@ -621,9 +694,12 @@ ZBC_STATIC_ASSERT(sizeof(zbc_covent) == 20, "zbc_covent size mismatch");
 ZBC_STATIC_ASSERT(sizeof(zbc_srcent) == 8, "zbc_srcent size mismatch");
 ZBC_STATIC_ASSERT(sizeof(zbc_ident) == 24, "zbc_ident size mismatch");
 ZBC_STATIC_ASSERT(sizeof(zbc_metaent) == 8, "zbc_metaent size mismatch");
-ZBC_STATIC_ASSERT(sizeof(zbc_impent) == 8, "zbc_impent size mismatch");
+ZBC_STATIC_ASSERT(sizeof(zbc_impent) == 24, "zbc_impent size mismatch");
+ZBC_STATIC_ASSERT(sizeof(zbc_apient) == 16, "zbc_apient size mismatch");
+ZBC_STATIC_ASSERT(sizeof(zbc_class) == 40, "zbc_class size mismatch");
+ZBC_STATIC_ASSERT(sizeof(zbc_rootent) == 32, "zbc_rootent size mismatch");
 ZBC_STATIC_ASSERT(sizeof(zbc_comp) == 16, "zbc_comp size mismatch");
-ZBC_STATIC_ASSERT(sizeof(zbc_layout) == 12, "zbc_layout size mismatch");
+ZBC_STATIC_ASSERT(sizeof(zbc_layout) == 16, "zbc_layout size mismatch");
 ZBC_STATIC_ASSERT(sizeof(zbc_covg) == 4, "zbc_covg size mismatch");
 ZBC_STATIC_ASSERT(sizeof(zbc_exectab) == 16, "zbc_exectab size mismatch");
 ZBC_STATIC_ASSERT(sizeof(zbc_execent) == 12, "zbc_execent size mismatch");
@@ -653,6 +729,6 @@ ZBC_STATIC_ASSERT(sizeof(zbc_coro) == 32, "zbc_coro size mismatch");
 ZBC_STATIC_ASSERT(sizeof(zbc_block) == 16, "zbc_block size mismatch");
 ZBC_STATIC_ASSERT(sizeof(zbc_select) == 16, "zbc_select size mismatch");
 ZBC_STATIC_ASSERT(sizeof(zbc_solve) == 32, "zbc_solve size mismatch");
-ZBC_STATIC_ASSERT(sizeof(zbc_entry) == 32, "zbc_entry size mismatch");
+ZBC_STATIC_ASSERT(sizeof(zbc_entry) == 40, "zbc_entry size mismatch");
 
 #endif /* ZUSPEC_ZBC_FORMAT_H */
